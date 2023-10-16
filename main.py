@@ -1,3 +1,4 @@
+import os
 import io
 import tkinter as tk
 from tkinter import messagebox
@@ -45,28 +46,36 @@ def get_volume():
 def record_and_recognize():
     global current_letter_index
 
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Build the full path to the wav file
+    wav_path = os.path.join(script_dir, "word.wav")
+
     # Recording audio
     r = sr.Recognizer()
     with sr.Microphone() as source:
         audio = r.listen(source, timeout=5, phrase_time_limit=5)  # Listen for a maximum of 5 seconds
 
-    # Combine prerecorded audio with the recorded audio
-    test_audio = AudioSegment.from_wav(r"C:\Users\ryanb\Documents\Code\OrionSoft\TEST.wav")
+    # Combine prerecorded audio with the recorded audio 
+    test_audio = AudioSegment.from_wav(wav_path)
+
+    with sr.AudioFile(wav_path) as source:
+        test_audio_data = r.record(source)
+        print(r.recognize_google(audio_data=test_audio_data))
+
     user_audio = AudioSegment.from_wav(io.BytesIO(audio.get_wav_data()))
     combined_audio = test_audio + user_audio
 
-    # Convert combined audio to WAV format in a BytesIO object
-    combined_audio_buffer = io.BytesIO()
-    combined_audio.export(combined_audio_buffer, format="wav")
-    combined_audio.export("combined_audio_test.wav", format="wav")
-    combined_audio_buffer.seek(0)
+    combined_audio.export("temp_combined_audio.wav", format="wav")
+    with sr.AudioFile("temp_combined_audio.wav") as source:
+        combined_recognition = r.record(source)
 
-    # Convert the WAV data to AudioData for the speech recognition library
-    audio_data_for_recognition = sr.AudioData(combined_audio_buffer.getvalue(), 44100, 2)
+    os.remove("temp_combined_audio.wav")
 
     # Recognizing the spoken letter
     try:
-        recognized_text = r.recognize_google(audio_data=audio_data_for_recognition).upper().strip()
+        recognized_text = r.recognize_google(audio_data=combined_recognition).upper().strip()
         print(f"Recognized text: {recognized_text}")
 
         # Strip the "TEST" part
